@@ -2,6 +2,7 @@
 
 #define SNAKE_GAME_SIZE 750.0
 #define SNAKE_SIZE 25.0
+#define TICK_DELTA 125
 
 #include "SDL3/SDL.h"
 #include <SDL3/SDL_main.h>
@@ -27,6 +28,7 @@ typedef struct GameState {
     bool isRunning = true;
     bool isGameOver = false;
     SnakeData *snakeData;
+    Uint32 lastFrameTime;
 } GameState;
 
 float randomCoord() {
@@ -143,24 +145,30 @@ void insertTail(SnakeData *snakeData) {
 
 SDL_AppResult SDL_AppIterate(void* AppState) {
     auto* state = static_cast<GameState*>(AppState);
+    auto now = SDL_GetTicks();
 
     // Clear screen
     SDL_SetRenderDrawColor(state->renderer, 0, 15, 15, 255);
     SDL_RenderClear(state->renderer);
 
-    handleTailMovement(state->snakeData);
-    handleMovement(state->snakeData);
-    handleCollision(state);
-    if (state->isGameOver) {
-        resetGame(state);
-    }
+    // Game logic
+    while ((now - state->lastFrameTime) > TICK_DELTA)
+    {
+        handleTailMovement(state->snakeData);
+        handleMovement(state->snakeData);
+        handleCollision(state);
+        if (state->isGameOver) {
+            resetGame(state);
+        }
 
-    if (SDL_RectsEqualFloat(&state->snakeData->snake.front(), &state->snakeData->food)) {
-        state->snakeData->food.x = randomCoord();
-        state->snakeData->food.y = randomCoord();
-        state->snakeData->isFoodEaten = true;
-        insertTail(state->snakeData);
-    };
+        if (SDL_RectsEqualFloat(&state->snakeData->snake.front(), &state->snakeData->food)) {
+            state->snakeData->food.x = randomCoord();
+            state->snakeData->food.y = randomCoord();
+            state->snakeData->isFoodEaten = true;
+            insertTail(state->snakeData);
+        };
+        state->lastFrameTime += TICK_DELTA;
+    }
 
     // Rendering
     SDL_SetRenderDrawColor(state->renderer, 120, 0, 00, 255);
@@ -175,7 +183,7 @@ SDL_AppResult SDL_AppIterate(void* AppState) {
 
     SDL_RenderPresent(state->renderer);
 
-    SDL_Delay(125);
+    // SDL_Delay(125);
 
     return state->isRunning ? SDL_APP_CONTINUE : SDL_APP_SUCCESS;
 }
@@ -204,6 +212,8 @@ SDL_AppResult SDL_AppInit(void** AppState, int, char**) {
     state->snakeData->snake.push_back(head);
     state->snakeData->food.w = state->snakeData->food.h = SNAKE_SIZE;
     state->snakeData->food.x = state->snakeData->food.y = SNAKE_SIZE * 3;
+
+    state->lastFrameTime = SDL_GetTicks();
 
     *AppState = state;
 
