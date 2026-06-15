@@ -18,13 +18,14 @@ typedef struct SnakeData {
     std::vector<SDL_FRect> snake;
     SDL_FRect food;
     SnakeDirection dir = SNAKE_DIR_RIGHT;
-    bool foodEaten = false;
+    bool isFoodEaten = false;
 } SnakeData;
 
 typedef struct GameState {
     SDL_Window *window;
     SDL_Renderer *renderer;
     bool isRunning = true;
+    bool isGameOver = false;
     SnakeData *snakeData;
 } GameState;
 
@@ -67,8 +68,8 @@ void handleMovement(SnakeData *snakeData) {
 
 void handleTailMovement(SnakeData *snakeData) {
     unsigned int vectorSize = snakeData->snake.size();
-    if (snakeData->foodEaten) {
-        snakeData->foodEaten = false;
+    if (snakeData->isFoodEaten) {
+        snakeData->isFoodEaten = false;
         vectorSize--;
     }
     for (unsigned int i = vectorSize - 1; i > 0; i--) {
@@ -107,9 +108,32 @@ void handleKeyPress(GameState *state, SDL_Keycode keyCode) {
                 SDL_Log("Set dir to RIGHT");
             }
             break;
+        case SDL_SCANCODE_R:
+            state->isGameOver = true;
+            break;
         default:
             break;
     }
+}
+
+void handleCollision(GameState *state) {
+    for (int i = 1; i < state->snakeData->snake.size(); i++) {
+        bool collide = SDL_RectsEqualFloat(&state->snakeData->snake.front(),
+            &state->snakeData->snake.at(i));
+        if (collide) {
+            state->isGameOver = true;
+            SDL_Log("Game over!");
+        }
+    }
+}
+
+void resetGame(GameState *state) {
+    state->isGameOver = false;
+    state->snakeData->isFoodEaten = false;
+    state->snakeData->snake.erase(state->snakeData->snake.begin() + 1, state->snakeData->snake.end());
+    state->snakeData->snake.front().x = state->snakeData->snake.front().y = SNAKE_GAME_SIZE/2;
+    state->snakeData->food.x = state->snakeData->food.y = SNAKE_SIZE * 3;
+    state->snakeData->dir = SNAKE_DIR_RIGHT;
 }
 
 void insertTail(SnakeData *snakeData) {
@@ -126,11 +150,15 @@ SDL_AppResult SDL_AppIterate(void* AppState) {
 
     handleTailMovement(state->snakeData);
     handleMovement(state->snakeData);
+    handleCollision(state);
+    if (state->isGameOver) {
+        resetGame(state);
+    }
 
-    if (SDL_HasRectIntersectionFloat(&state->snakeData->snake.front(), &state->snakeData->food)) {
+    if (SDL_RectsEqualFloat(&state->snakeData->snake.front(), &state->snakeData->food)) {
         state->snakeData->food.x = randomCoord();
         state->snakeData->food.y = randomCoord();
-        state->snakeData->foodEaten = true;
+        state->snakeData->isFoodEaten = true;
         insertTail(state->snakeData);
     };
 
@@ -175,7 +203,7 @@ SDL_AppResult SDL_AppInit(void** AppState, int, char**) {
     head.x = head.y = SNAKE_GAME_SIZE/2;
     state->snakeData->snake.push_back(head);
     state->snakeData->food.w = state->snakeData->food.h = SNAKE_SIZE;
-    state->snakeData->food.x = state->snakeData->food.y = SNAKE_GAME_SIZE/SNAKE_SIZE;
+    state->snakeData->food.x = state->snakeData->food.y = SNAKE_SIZE * 3;
 
     *AppState = state;
 
