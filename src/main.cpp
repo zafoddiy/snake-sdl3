@@ -2,6 +2,7 @@
 
 #define SNAKE_GAME_SIZE 750.0
 #define SNAKE_SIZE 25.0
+#define BAR_DEPTH 250.0
 #define TICK_DELTA 125
 
 #include "SDL3/SDL.h"
@@ -54,10 +55,10 @@ void handleMovement(SnakeData *snakeData) {
         default:
             break;
     }
-    if (snakeData->snake.front().x > SNAKE_GAME_SIZE) {
+    if (snakeData->snake.front().x >= SNAKE_GAME_SIZE) {
         snakeData->snake.front().x = 0;
     }
-    else if (snakeData->snake.front().y > SNAKE_GAME_SIZE) {
+    else if (snakeData->snake.front().y >= SNAKE_GAME_SIZE) {
         snakeData->snake.front().y = 0;
     }
     else if (snakeData->snake.front().x < 0) {
@@ -86,24 +87,28 @@ void handleKeyPress(GameState *state, SDL_Keycode keyCode) {
         case SDL_SCANCODE_ESCAPE:
             state->isRunning = false;
             break;
+        case SDL_SCANCODE_UP:
         case SDL_SCANCODE_W:
             if (prevDir != SNAKE_DIR_DOWN) {
                 state->snakeData->dir = SNAKE_DIR_UP;
                 SDL_Log("Set dir to UP");
             }
             break;
+        case SDL_SCANCODE_DOWN:
         case SDL_SCANCODE_S:
             if (prevDir != SNAKE_DIR_UP) {
                 state->snakeData->dir = SNAKE_DIR_DOWN;
                 SDL_Log("Set dir to DOWN");
             }
             break;
+        case SDL_SCANCODE_LEFT:
         case SDL_SCANCODE_A:
             if (prevDir != SNAKE_DIR_RIGHT) {
                 state->snakeData->dir = SNAKE_DIR_LEFT;
                 SDL_Log("Set dir to LEFT");
             }
             break;
+        case SDL_SCANCODE_RIGHT:
         case SDL_SCANCODE_D:
             if (prevDir != SNAKE_DIR_LEFT) {
                 state->snakeData->dir = SNAKE_DIR_RIGHT;
@@ -112,6 +117,7 @@ void handleKeyPress(GameState *state, SDL_Keycode keyCode) {
             break;
         case SDL_SCANCODE_R:
             state->isGameOver = true;
+            SDL_Log("Reset called!");
             break;
         default:
             break;
@@ -147,8 +153,8 @@ SDL_AppResult SDL_AppIterate(void* AppState) {
     auto* state = static_cast<GameState*>(AppState);
     auto now = SDL_GetTicks();
 
-    // Clear screen
-    SDL_SetRenderDrawColor(state->renderer, 0, 15, 15, 255);
+    // Clear screen & Generate info bar
+    SDL_SetRenderDrawColor(state->renderer, 15, 15, 15, 255);
     SDL_RenderClear(state->renderer);
 
     // Game logic
@@ -182,8 +188,6 @@ SDL_AppResult SDL_AppIterate(void* AppState) {
     }
 
     SDL_RenderPresent(state->renderer);
-
-    // SDL_Delay(125);
 
     return state->isRunning ? SDL_APP_CONTINUE : SDL_APP_SUCCESS;
 }
