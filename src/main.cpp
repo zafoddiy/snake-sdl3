@@ -252,6 +252,7 @@ void SDL_AppQuit(void* AppState, SDL_AppResult Result) {
         auto* state = static_cast<GameState*>(AppState);
         SDL_DestroyRenderer(state->renderer);
         SDL_DestroyWindow(state->window);
+        delete state->snakeData;
         delete state;
     }
 }
