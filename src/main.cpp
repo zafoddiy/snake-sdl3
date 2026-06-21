@@ -5,7 +5,7 @@
 #define BAR_DEPTH 250.0
 #define TICK_DELTA 125
 
-#include "SDL3/SDL.h"
+#include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <vector>
 
@@ -126,12 +126,8 @@ void handleKeyPress(GameState *state, SDL_Keycode keyCode) {
 
 void handleCollision(GameState *state) {
     for (int i = 1; i < state->snakeData->snake.size(); i++) {
-        bool collide = SDL_RectsEqualFloat(&state->snakeData->snake.front(),
-            &state->snakeData->snake.at(i));
-        if (collide) {
-            state->isGameOver = true;
-            SDL_Log("Game over!");
-        }
+        SDL_RectsEqualFloat(&state->snakeData->snake.front(),
+            &state->snakeData->snake.at(i)) ? state->isGameOver = true : false;
     }
 }
 
@@ -224,7 +220,7 @@ SDL_AppResult SDL_AppInit(void** AppState, int, char**) {
     return SDL_APP_CONTINUE;
 }
 
-SDL_AppResult SDL_AppEvent(void* AppState, SDL_Event* Event) {
+SDL_AppResult SDL_AppEvent(void* AppState, const SDL_Event* Event) {
     auto state = static_cast<GameState*>(AppState);
 
     switch (Event->type) {
