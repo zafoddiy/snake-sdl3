@@ -118,6 +118,11 @@ private:
 class Assets {
 public:
     SDL_Texture *tiles;
+    SDL_Texture *headTexture;
+    SDL_Texture *bodyStraightTexture;
+    SDL_Texture *bodyTurnTexture;
+    SDL_Texture *tailTexture;
+    SDL_Texture *foodTexture;
     TTF_Font *font;
     SDL_Texture *textTexture;
 
@@ -168,6 +173,11 @@ public:
     }
 
     static void DestroyAssets(Assets *assets) {
+        SDL_DestroyTexture(assets->foodTexture);
+        SDL_DestroyTexture(assets->headTexture);
+        SDL_DestroyTexture(assets->bodyStraightTexture);
+        SDL_DestroyTexture(assets->bodyTurnTexture);
+        SDL_DestroyTexture(assets->tailTexture);
         SDL_DestroyTexture(assets->tiles);
         SDL_DestroyTexture(assets->textTexture);
     }
@@ -285,19 +295,135 @@ class SnakeGame {
     }
 };
 
+void HandleRenderDirectionHead(const SnakeGame *state) {
+    double angle = 0.0;
+    switch (state->snakeData->snake.front().dir) {
+        case SNAKE_DIR_UP:
+            angle = 0.0;
+            break;
+        case SNAKE_DIR_DOWN:
+            angle = 180.0;
+            break;
+        case SNAKE_DIR_LEFT:
+            angle = -90.0;
+            break;
+        case SNAKE_DIR_RIGHT:
+            angle = 90.0;
+            break;
+    }
+    SDL_RenderTextureRotated(state->renderer, state->assets->headTexture, nullptr,
+        &state->snakeData->snake.front().rect, angle, nullptr, SDL_FLIP_HORIZONTAL);
+}
+
+void HandleRenderDirectionTail(const SnakeGame *state) {
+    double angle = 0.0;
+    switch (state->snakeData->snake.back().dir) {
+        case SNAKE_DIR_UP:
+            angle = 0.0;
+            break;
+        case SNAKE_DIR_DOWN:
+            angle = 180.0;
+            break;
+        case SNAKE_DIR_LEFT:
+            angle = -90.0;
+            break;
+        case SNAKE_DIR_RIGHT:
+            angle = 90.0;
+            break;
+    }
+    SDL_RenderTextureRotated(state->renderer, state->assets->tailTexture, nullptr,
+        &state->snakeData->snake.back().rect, angle, nullptr, SDL_FLIP_HORIZONTAL);
+}
+
+void HandleRenderDirectionStraight(const SnakeGame *state, int index) {
+    double angle = 0.0;
+    switch (state->snakeData->snake.at(index).dir) {
+        case SNAKE_DIR_UP:
+            angle = 0.0;
+            break;
+        case SNAKE_DIR_DOWN:
+            angle = 180.0;
+            break;
+        case SNAKE_DIR_LEFT:
+            angle = -90.0;
+            break;
+        case SNAKE_DIR_RIGHT:
+            angle = 90.0;
+            break;
+    }
+    SDL_RenderTextureRotated(state->renderer, state->assets->bodyStraightTexture, nullptr,
+        &state->snakeData->snake.at(index).rect, angle, nullptr, SDL_FLIP_HORIZONTAL);
+}
+
+void HandleRenderDirectionTurn(const SnakeGame *state, int index) {
+    double angle = 0.0;
+    switch (state->snakeData->snake.at(index + 1).dir) {
+        case SNAKE_DIR_UP:
+            switch (state->snakeData->snake.at(index).dir) {
+            case SNAKE_DIR_RIGHT:
+                    angle = 0.0;
+                    break;
+            case SNAKE_DIR_LEFT:
+                    angle = 90.0;
+                    break;
+                default: break;
+            }
+            break;
+        case SNAKE_DIR_DOWN:
+            switch (state->snakeData->snake.at(index).dir) {
+            case SNAKE_DIR_RIGHT:
+                    angle = -90.0;
+                    break;
+            case SNAKE_DIR_LEFT:
+                    angle = 180.0;
+                    break;
+            default: break;
+            }
+            break;
+        case SNAKE_DIR_LEFT:
+            switch (state->snakeData->snake.at(index).dir) {
+            case SNAKE_DIR_UP:
+                    angle = -90.0;
+                    break;
+            case SNAKE_DIR_DOWN:
+                    angle = 0.0;
+                    break;
+            default: break;
+            }
+            break;
+        case SNAKE_DIR_RIGHT:
+            switch (state->snakeData->snake.at(index).dir) {
+            case SNAKE_DIR_UP:
+                    angle = 180.0;
+                    break;
+            case SNAKE_DIR_DOWN:
+                    angle = 90.0;
+                    break;
+            default: break;
+            }
+            break;
+    }
+    SDL_RenderTextureRotated(state->renderer, state->assets->bodyTurnTexture, nullptr,
+        &state->snakeData->snake.at(index).rect, angle, nullptr, SDL_FLIP_NONE);
+}
+
 void Rendering(SnakeGame *state) {
     SDL_SetRenderDrawColor(state->renderer, 15, 15, 15, 255);
     SDL_RenderClear(state->renderer);
     Assets::RenderSolid(state->renderer, state->assets->tiles, 0, 0, 750, 750);
 
-    SDL_SetRenderDrawColor(state->renderer, 120, 0, 00, 255);
-    SDL_RenderFillRect(state->renderer, &state->snakeData->food);
-
-    SDL_SetRenderDrawColor(state->renderer, 120, 120, 0, 255);
-    SDL_RenderFillRect(state->renderer, &state->snakeData->snake.front().rect);
-    SDL_SetRenderDrawColor(state->renderer, 0, 60, 0, 255);
-    for (int i = 1; i < state->snakeData->snake.size(); i++) {
-        SDL_RenderFillRect(state->renderer, &state->snakeData->snake.at(i).rect);
+    SDL_RenderTexture(state->renderer, state->assets->foodTexture, nullptr, &state->snakeData->food);
+    HandleRenderDirectionHead(state);
+    for (int i = 1; i < state->snakeData->snake.size() - 1; i++) {
+        if (state->snakeData->snake.at(i).dir == state->snakeData->snake.at(i + 1).dir) {
+            HandleRenderDirectionStraight(state, i);
+        }
+        else {
+            HandleRenderDirectionTurn(state, i);
+        }
+    }
+    if (state->snakeData->snakeScore > 1) {
+        HandleRenderDirectionTail(state);
     }
     std::string text;
     text = "Current score: " + std::to_string(state->snakeData->snakeScore);
@@ -364,10 +490,9 @@ SDL_AppResult SDL_AppIterate(void* AppState) {
             }
             SnakeData::HandleFoodEaten(state->snakeData, SNAKE_GAME_SIZE, SNAKE_SIZE);
             state->lastFrameTime += TICK_DELTA;
+            // Rendering
+            Rendering(state);
         }
-
-        // Rendering
-        Rendering(state);
     }
     else {
         // Menu Screen
@@ -402,9 +527,44 @@ SDL_AppResult SDL_AppInit(void** AppState, int, char**) {
         SDL_Log("Tile loading failed: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
+    SDL_Surface *headSurface = SDL_LoadBMP("./assets/images/head.bmp");
+    if (!headSurface) {
+        SDL_Log("Head loading failed: %s", SDL_GetError());
+        return SDL_APP_FAILURE;
+    }
+    SDL_Surface *bodySurface = SDL_LoadBMP("./assets/images/straight.bmp");
+    if (!bodySurface) {
+        SDL_Log("Body loading failed: %s", SDL_GetError());
+        return SDL_APP_FAILURE;
+    }
+    SDL_Surface *turnSurface = SDL_LoadBMP("./assets/images/turn.bmp");
+    if (!turnSurface) {
+        SDL_Log("Turn loading failed: %s", SDL_GetError());
+        return SDL_APP_FAILURE;
+    }
+    SDL_Surface *tailSurface = SDL_LoadBMP("./assets/images/tail.bmp");
+    if (!tailSurface) {
+        SDL_Log("Tail loading failed: %s", SDL_GetError());
+        return SDL_APP_FAILURE;
+    }
+    SDL_Surface *foodSurface = SDL_LoadBMP("./assets/images/food.bmp");
+    if (!foodSurface) {
+        SDL_Log("Food loading failed: %s", SDL_GetError());
+        return SDL_APP_FAILURE;
+    }
     state->assets = new Assets;
     state->assets->tiles = SDL_CreateTextureFromSurface(state->renderer, tileSurface);
+    state->assets->headTexture = SDL_CreateTextureFromSurface(state->renderer, headSurface);
+    state->assets->bodyStraightTexture = SDL_CreateTextureFromSurface(state->renderer, bodySurface);
+    state->assets->bodyTurnTexture = SDL_CreateTextureFromSurface(state->renderer, turnSurface);
+    state->assets->tailTexture = SDL_CreateTextureFromSurface(state->renderer, tailSurface);
+    state->assets->foodTexture = SDL_CreateTextureFromSurface(state->renderer, foodSurface);
     SDL_DestroySurface(tileSurface);
+    SDL_DestroySurface(headSurface);
+    SDL_DestroySurface(bodySurface);
+    SDL_DestroySurface(turnSurface);
+    SDL_DestroySurface(tailSurface);
+    SDL_DestroySurface(foodSurface);
     state->assets->font = TTF_OpenFont("./assets/fonts/asimov-font/Asimov-MwEn.otf", 16.0);
     if (!state->assets->font) {
         SDL_Log("Couldn't open font: %s", SDL_GetError());
