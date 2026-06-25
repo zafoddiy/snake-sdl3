@@ -56,7 +56,7 @@
 
             int SDL_main(int argc, char **argv)
             {
-                return SDL_EnterAppMainCallbacks(argc, argv, SDL_AppInit, SDL_AppIterate, SDL_AppEvent, SDL_AppQuit);
+                return SDL_EnterAppMainCallbacks(argc, argv, SDL_AppInit, SDL_AppIterate, SDL_AppEvent_func(SDL_AppEvent), SDL_AppQuit);
             }
 
         #endif  /* platform-specific tests */
