@@ -532,6 +532,7 @@ SDL_AppResult SDL_AppInit(void** AppState, int, char**) {
         SDL_Log("Head loading failed: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
+    SDL_SetWindowIcon(state->window, headSurface);
     SDL_Surface *bodySurface = SDL_LoadBMP("./assets/images/straight.bmp");
     if (!bodySurface) {
         SDL_Log("Body loading failed: %s", SDL_GetError());
