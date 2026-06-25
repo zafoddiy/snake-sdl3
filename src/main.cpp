@@ -182,6 +182,7 @@ class SnakeGame {
     bool isGameOver = false;
     bool isPaused = false;
     int menuSelection;
+    bool mouseInRect;
     SnakeData *snakeData;
     Uint32 lastFrameTime = 0;
 
@@ -244,6 +245,23 @@ class SnakeGame {
                             break;
                     }
                 }
+            default:
+                break;
+        }
+    }
+
+    static void HandleMouseButtonMenu(SnakeGame *state) {
+        switch (state->menuSelection) {
+            case 0:
+                if (state->mouseInRect) {
+                    state->isPaused = false;
+                }
+                break;
+            case 1:
+                if (state->mouseInRect) {
+                    state->isRunning = false;
+                }
+                break;
             default:
                 break;
         }
@@ -312,14 +330,19 @@ void Menu(SnakeGame *state) {
     text = "Play";
     SDL_FRect playRect = state->assets->RenderMenu(state->renderer, text, SNAKE_GAME_SIZE/2 - 50, SNAKE_GAME_SIZE/2 - 25,
         100.0f, 50.0f, playSelected);
-    if (SDL_PointInRectFloat(&mousePos, &playRect)) {
-        state->menuSelection = 0;
-    }
     text = "Quit";
     SDL_FRect quitRect = state->assets->RenderMenu(state->renderer, text, SNAKE_GAME_SIZE/2 - 50, SNAKE_GAME_SIZE/2 + 25,
         100.0f, 50.0f, quitSelected);
-    if (SDL_PointInRectFloat(&mousePos, &quitRect)) {
+    if (SDL_PointInRectFloat(&mousePos, &playRect)) {
+        state->menuSelection = 0;
+        state->mouseInRect = true;
+    }
+    else if (SDL_PointInRectFloat(&mousePos, &quitRect)) {
         state->menuSelection = 1;
+        state->mouseInRect = true;
+    }
+    else {
+        state->mouseInRect = false;
     }
 
     SDL_RenderPresent(state->renderer);
@@ -396,6 +419,7 @@ SDL_AppResult SDL_AppInit(void** AppState, int, char**) {
     state->isRunning = true;
     state->snakeData = new SnakeData;
     state->menuSelection = 0;
+    state->mouseInRect = false;
     state->isPaused = true;
     state->lastFrameTime = SDL_GetTicks();
 
@@ -418,7 +442,10 @@ SDL_AppResult SDL_AppEvent(void* AppState, const SDL_Event* Event) {
         case SDL_EVENT_KEY_DOWN:
             SnakeGame::HandleKeyPress(state, Event->key.scancode);
             break;
-        case SDL_EVENT_MOUSE_MOTION:
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            if (state->isPaused) {
+                SnakeGame::HandleMouseButtonMenu(state);
+            }
             break;
         default:
             break;
